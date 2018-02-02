@@ -1,11 +1,12 @@
 let map  = {
-    "view": "/data/view",
-    "view_archive": "/data/view_archive",
-    "searches": "/data/searches",
-    "searches_archive": "/data/searches_archive",
-    "searches_recommend": "/data/searches_recommend",
-    "downloads": "/data/downloads",
-    "participants": "/data/participants",
+    "view": "./data/view/",
+    "view_archive": "./data/view_archive/",
+    "view_search": "./data/searches/",
+    "view_search_archive": "./data/searches_archive/",
+    "view_search_recommended": "./data/searches_recommended/",
+    "download": "./data/downloads/",
+    "participate": "./data/participants/",
+    "raw": "./data/raw/"
 };
 
 module.exports = map;
