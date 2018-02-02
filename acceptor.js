@@ -2,7 +2,6 @@
 const http = require('http');
 const nconf = require('nconf');
 const fs = require('fs');
-const roadmap = require('./data/index');
 
 nconf.argv();
 
@@ -16,18 +15,16 @@ if(port === false || host === false) {
     process.exit(-1);
 }
 
-for(let r in roadmap) {
-    fs.access(roadmap[r], (err) => {
-        if (err) {
-            fs.mkdir(roadmap[r], (err) =>  {
+fs.access('./data/raw', (err) => {
+    if (err) {
+        fs.mkdir('./data/raw', (err) =>  {
+            if(err) console.log(err);
+            fs.writeFile('./data/raw/' + '.gitignore', '*', (err) => {
                 if(err) console.log(err);
-                fs.writeFile(roadmap[r] + '.gitignore', '*', (err) => {
-                    if(err) console.log(err);
-                });
             });
-        }
-    });
-}
+        });
+    }
+});
 
 const server = http.createServer((req, res) => {
     if (req.method !== 'POST') {
@@ -37,7 +34,7 @@ const server = http.createServer((req, res) => {
     fs.stat('./data/raw/tmp', (err, stat) => {
         if (err) return;
         console.log(stat);
-        if(stat && stat.size >= 52428800) {
+        if(stat && stat.size >= 54*1024) {
             fs.rename('./data/raw/tmp', './data/raw/raw_file_' + Math.round(new Date().getTime()/1000), (err) => {
                 if(err)console.log(err);
             })
@@ -45,16 +42,16 @@ const server = http.createServer((req, res) => {
     });
 
     let data = '';
-    req.on('data', function(chunk) {
+    req.on('data', (chunk) => {
         data += chunk.toString('utf8');
     });
 
-    req.on('error', function (err) {
+    req.on('error',  (err) => {
         console.log(err);
     });
 
-    req.on('end', function() {
-        console.log(data);
+    req.on('end', () => {
+        data = data.replace(/(\]|\[)/g, "");
         fs.appendFile('./data/raw/tmp', data, (err) => {
             let rs = "ok";
             if(err) {
