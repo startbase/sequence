@@ -11,10 +11,10 @@ const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
 
 const DATASET_SEGMENT = 0;
-const DATASET_PORTAGE = 1;
-const DATASET_KEY = 0;
-const DATASET_DATETIME = 2;
-const DATASET_ACTION = 1;
+const DATASET_PARTITION = 1;
+const DATASET_KEY = 2;
+const DATASET_DATETIME = 3;
+const DATASET_ACTION = 4;
 
 const RULE_EQUAL = 'equal';
 const RULE_ANY = 'any';
@@ -99,13 +99,13 @@ function find_sequences(data, sequence_ql) {
 
 function handler(request, response) {
     if (request.method !== 'POST') {
-        return accessDenied();
+        return returnAccessDenied();
     }
 
     processData(request, response, (data) => {
 
-        if (!data.partition || data.partition.length <= 0) {
-            returnResult({error: 'Partition not set'}, response);
+        if (!data.file || data.file.length <= 0) {
+            returnResult({error: 'File not set'}, response);
         }
 
         if (!data.sequence) {
@@ -114,14 +114,14 @@ function handler(request, response) {
 
         let TIME_DATASET_READ_BEGIN = Date.now();
 
-        let instream = fs.createReadStream(__dirname + '/data/raw/' + data.partition);
+        let instream = fs.createReadStream(__dirname + '/data/' + data.file);
         let outstream = new stream;
         let rl = readline.createInterface(instream, outstream);
 
 
         let sequences_data = new Map();
 
-        rl.on('line', function (line) {
+        rl.on('line', (line) => {
             let e = line.split("\t");
 
             if (!sequences_data.has(e[DATASET_KEY])) {
@@ -131,7 +131,7 @@ function handler(request, response) {
             sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
         });
 
-        rl.on('close', function () {
+        rl.on('close', () => {
             let TIME_DATASET_READ_END = Date.now();
 
             let TIME_SEQUENCES_BEGIN = Date.now();
@@ -157,7 +157,7 @@ function handler(request, response) {
 function processData(request, response, callback) {
 
     let body = '';
-    request.on('data', function (data) {
+    request.on('data', (data) => {
 
         // Too much POST data, kill the connection!
         // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
@@ -169,7 +169,7 @@ function processData(request, response, callback) {
         body += data;
     });
 
-    request.on('end', function () {
+    request.on('end', () => {
         try {
             body = JSON.parse(body);
             callback(body);
