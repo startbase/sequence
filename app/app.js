@@ -1,18 +1,17 @@
 /*
-
     Принимает HTTP запрос и выполняет команды
+*/
 
-    Запросы приходят в Raw JSON вида
-
- */
-
-var query = {
-    'segment': 'segment_name',
-    'sequence': [
-        {'event_key':'event_name'},
-        {'rule':'any'},
-        {'rule':'time', 'seconds':'10'},
-        {'event_key':'event_name'}
+// Пример HTTP запроса на scheduler
+let query = {
+    'workers':[
+        {'url':'http://127.0.0.1:3001'}
+    ],
+    'storage': 'segment_name',
+    "sequence": [
+        {"rule": "equal", "action_key": "view_search"},
+        {"rule": "any"},
+        {"rule": "equal", "action_key": "view"}
     ]
 };
 
@@ -29,7 +28,7 @@ var query = {
  *
  */
 
-var response = {
+let response = {
     'sequence_count':10,
     'processed':{
         'files':100,
