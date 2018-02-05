@@ -15,7 +15,7 @@ class Scheduler {
             "file": tasks,
             "sequence": sequence
         };
-
+        stats.tasks[tasks]['worker'] = worker;
         const url_data = url.parse(worker.url);
         const options = {
             hostname: url_data.hostname,
@@ -32,7 +32,9 @@ class Scheduler {
                 try {
                     body = JSON.parse(body.toString());
                     stats.sequence_count += body.sequences;
-                    stats.processed.time += body.statistics.time.all;
+                    stats.processed.time += +body.statistics.time.all;
+                    stats.tasks[tasks]['time'] = +body.statistics.time.all;
+                    stats.tasks[tasks]['sequence'] = body.sequences;
                 }
                 catch(e) {
                     console.log('Error parsing task result', e);
@@ -43,6 +45,7 @@ class Scheduler {
             });
         });
         req.on('error', e => {
+            stats.tasks[tasks]['error'] = true;
             stats.processed.errors++;
             console.log('Problem with request: ' + e.message);
             callback();
@@ -66,7 +69,7 @@ class Scheduler {
             tasks.forEach(task => {
                 this.sendTask(workers[i], task, sequence || [], stats, () => {
                     processed_files++;
-                    if(processed_files == stats.processed.files) {
+                    if(processed_files === stats.processed.files) {
                         callback();
                     }
                 });
@@ -94,6 +97,8 @@ class Scheduler {
                             return;
                         }
                         stats.processed.size += file_stats.size / 1000.0;
+                        stats.tasks[path.join(storage, item)] = {};
+                        stats.tasks[path.join(storage, item)]['size'] = file_stats.size / 1000.0;
                     });
                 });
                 this.balance(items.map(file => path.join(storage, file)), workers, sequence, stats, callback);
@@ -113,6 +118,7 @@ class Scheduler {
                     'time': 0, // seconds
                     'errors': 0
                 },
+                'tasks': {}
             };
             req.on('error', err => {
                 console.error(err);
@@ -141,6 +147,6 @@ class Scheduler {
         });
     }
 
-};
+}
 
 (new Scheduler()).run();
