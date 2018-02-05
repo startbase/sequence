@@ -17,6 +17,7 @@ const server = http.createServer(handler);
 
 let keys_cache = new Map();
 
+let index_updated = 0;
 let index = {
     files: new Map(),
     last_file: 0
@@ -31,11 +32,31 @@ setInterval(() => {
     }
 }, 1000);
 
+setInterval(() => {
+    if (index_updated === 0) {
+        return;
+    }
+
+    let index_synced = {files:[]};
+
+    index.files.forEach((value, file) => {
+        index_synced.files.push({file:file, keys:Array.from(value)});
+    });
+
+    fs.writeFile(index_file, JSON.stringify(index_synced), function (err) {
+        log('index.json synced');
+        if (err) throw err;
+    });
+
+    index_synced = {};
+    index_updated = 0;
+}, 1000);
+
 let index_file = __dirname + '/data/index.json';
 
 if (!fs.existsSync(index_file)) {
-    fs.writeFile(index_file, JSON.stringify(index), function (err) {
-        log('Index.db created');
+    fs.writeFile(index_file, JSON.stringify({files:[]}), function (err) {
+        log('Index.json created');
         if (err) throw err;
     });
 }
@@ -45,19 +66,25 @@ fs.readFile(index_file, 'utf8', function (err, data) {
 
     try {
         let index_draft = JSON.parse(data);
-        index_draft.files.forEach((item) => {
-            if (!index.files.has(item.file)) {
-                index.files.set(item.file, new Set());
-            }
 
-            item.keys.forEach((key) => {
-                index.files.get(item.file).add(item.keys);
+        if (index_draft.files.length > 0) {
+            index_draft.files.forEach((item) => {
+                if (!index.files.has(item.file)) {
+                    index.files.set(item.file, new Set());
+                }
+
+                item.keys.forEach((key) => {
+                    index.files.get(item.file).add(key);
+                });
+
+                if (index.last_file < item.file) {
+                    index.last_file = item.file;
+                }
+
+
             });
 
-            if (index.last_file < item.file) {
-                index.last_file = item.file;
-            }
-        });
+        }
 
         log('index:', index);
 
@@ -84,29 +111,40 @@ function handler(request, response) {
 
         data.data.forEach((line) => {
             if (line.storage && line.partition && line.key && line.datetime && line.action) {
+                log('key find: ', line.key);
                 if (keys_cache.has(line.key)) {
+                    log('key find in cache', line.key);
                     line.file = keys_cache.get(line.key);
                 } else {
+                    log('key search in index.json', line.key);
                     let fe = false;
+
                     index.files.forEach((value, file) => {
-                        if (fe)
+                        if (fe === true)
                             return;
 
+                        log('key search in file:', file, value, line.key);
+
                         if (value.has(line.key)) {
+                            log('key finded in index.json', line.key);
                             line.file = file;
-                            value.add(line.key);
+                            index.files.get(file).add(line.key);
                             fe = true;
                         }
                     });
 
-                    if (!fe) {
-                        if (index.files.has(index.last_file)) {
-                            index.files.get(index.last_file).add(line.key);
-                        } else {
-                            index.files.set(index.last_file, new Set([line.key]));
+                    if (fe === false) {
+
+                        if (!index.files.has(index.last_file)) {
+                            index.files.set(index.last_file, new Set());
                         }
 
+                        index.files.get(index.last_file).add(line.key);
+                        index_updated = 1;
+
                         line.file = index.last_file;
+
+                        log('key add to index.json', line.key);
                     }
                 }
 
@@ -114,6 +152,7 @@ function handler(request, response) {
                     return;
                 }
 
+                log('key wrote to:', line.file, line.key);
                 line.file = 'part_' + line.file + '.tsv';
                 data_storage.insert(line);
             }
