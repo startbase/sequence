@@ -10,4 +10,14 @@
 
  после завершения всех воркеров, подсчитывается общий результат и отдается в app
 
-*/
+ */
+
+// Пример HTTP запроса на worker
+let request = {
+    "file": "test/part_XX.tsv",
+    "sequence": [
+        {"rule": "equal", "action_key": "view_search"},
+        {"rule": "any"},
+        {"rule": "equal", "action_key": "view"}
+    ]
+};
