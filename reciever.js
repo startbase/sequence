@@ -129,6 +129,7 @@ function handler(request, response) {
                             log('key finded in index.json', line.key);
                             line.file = file;
                             index.files.get(file).add(line.key);
+                            keys_cache.set(line.key, file);
                             fe = true;
                         }
                     });
