@@ -15,7 +15,6 @@ class Scheduler {
             "file": tasks,
             "sequence": sequence
         };
-        stats.tasks[tasks]['worker'] = worker;
         const url_data = url.parse(worker.url);
         const options = {
             hostname: url_data.hostname,
@@ -33,6 +32,10 @@ class Scheduler {
                     body = JSON.parse(body.toString());
                     stats.sequence_count += body.sequences;
                     stats.processed.time += +body.statistics.time.all;
+                    if(!stats.tasks[tasks]) {
+                        stats.tasks[tasks] = {};
+                    }
+                    stats.tasks[tasks]['worker'] = worker.url;
                     stats.tasks[tasks]['time'] = +body.statistics.time.all;
                     stats.tasks[tasks]['sequence'] = body.sequences;
                 }
