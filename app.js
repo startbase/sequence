@@ -1,8 +1,8 @@
 'use strict';
 
-const express = require('express');
-const nconf = require('nconf');
-const bodyParser = require('body-parser');
+const express = require('express'); // @todo-r тоже убрать, он на старте дает +50мб к процессу
+const nconf = require('nconf'); // @todo-r нужно убрать
+const bodyParser = require('body-parser'); // @todo-r reciever.js:164
 const uniqid = require('uniqid');
 const ws = new require('ws');
 
@@ -12,7 +12,7 @@ nconf.argv();
 class App {
 
     constructor() {
-        this.clients = {};
+        this.clients = {}; // используй Map
     }
 
     initWebServer() {
@@ -33,10 +33,6 @@ class App {
             process.exit(-1);
         }
 
-        web_app.get('/get', (req, res) => {
-            res.end('213');
-        });
-
         web_app.listen(port, host, () => {
             console.log('server start ' + host + ' listening on port ' + port);
         });
@@ -45,16 +41,14 @@ class App {
 
     initWSReceiver() {
         let web_socket_server = new ws.Server({
-            port: 8081
+            port: 8081 // @todo-r env WEB_PORT
         });
         web_socket_server.on('connection', (ws) => {
             const id = uniqid();
             this.clients[id] = ws;
-            console.log('new connection ' + id, ws._socket.remoteAddress);
+            console.log('new connection ' + id, ws._socket.remoteAddress); // используй log из reciever.js:203 c env DEBUG
 
             ws.on('message', (raw_data) => {
-                //hello data
-
                 const data = JSON.parse(raw_data);
                 console.log(data);
             });
