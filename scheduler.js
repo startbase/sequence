@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const DEBUG = process.env.DEBUG || true;
+
 class Scheduler {
 
     balance(files, workers_cnt) { // @todo-r мб static?
@@ -23,18 +25,18 @@ class Scheduler {
         let dir = path.join(__dirname, BASE_STORAGE_DIR, storage);
         fs.access(dir, err => {
             if(err) {
-                console.error('Can not read directory:', dir); // @todo-r используй log
+                this.log('Can not read directory:' +  dir);
                 throw err;
             }
             fs.readdir(dir, (err, items) => {
                 if(err) {
-                    console.log(err); // @todo-r используй log
+                    this.log(err);
                     throw err;
                 }
                 items.forEach(item => {
                     fs.stat(path.join(dir, item), (err, file_stats) => {
                         if(err) {
-                            console.error('Cannot get', item, 'size');
+                            this.log('Cannot get', item, 'size');
                             throw err;
                         }
 
@@ -67,6 +69,12 @@ class Scheduler {
         this.readdir(storage, workers_cnt, stats, res => {
             callback(res);
         });
+    }
+
+    log(message) {
+        if(DEBUG) {
+            console.log(message);
+        }
     }
 }
 
