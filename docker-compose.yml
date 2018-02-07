@@ -1,0 +1,37 @@
+version: '2'
+services:
+  reciever:
+    build: .
+    command: reciever
+    ports:
+      - "3002:8080"
+    volumes:
+      - ".:/usr/src/app"
+    environment:
+      HOST: "0.0.0.0"
+      DEBUG: "true"
+    restart: always
+  worker:
+    build: .
+    command: worker
+    depends_on:
+      - app
+      - reciever
+    ports:
+      - "3001:8080"
+    volumes_from:
+      - reciever
+    environment:
+      HOST: "0.0.0.0"
+      DEBUG: "true"
+      APP_SERVER_URL: "ws://app:8081"
+    restart: always
+  app:
+    build: .
+    command: app
+    ports:
+      - "3000:8080"
+    environment:
+      HOST: "0.0.0.0"
+      DEBUG: "true"
+    restart: always

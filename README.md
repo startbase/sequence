@@ -1,3 +1,7 @@
 Pattern matching for event chains.
 
-https://drive.google.com/file/d/10ZskUK69TguChQdgx50jw1A0BDr0tpLV/view?usp=sharing
+<h1>Docker Compose</h1>
+<ol type="1">
+<li>Make sure you have a Docker machine up and running.</li>
+<li>Run docker-compose -f docker-compose.yml up</li>
+</ol>

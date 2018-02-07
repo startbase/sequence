@@ -7,10 +7,10 @@ const readline = require('readline');
 const stream = require('stream');
 const WebSocketClient = require('./ws-client');
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
-const APP_SERVER_URL = process.env.APP_SERVER_URL || 'ws://127.0.0.1:3000';
+const APP_SERVER_URL = process.env.APP_SERVER_URL || 'ws://127.0.0.1:8081';
 
 const DATASET_SEGMENT = 0;
 const DATASET_PARTITION = 1;
@@ -102,7 +102,7 @@ function calculateSequence(data, callback) {
 
     let TIME_DATASET_READ_BEGIN = Date.now();
 
-    let instream = fs.createReadStream(__dirname + '/data/' + data.file);
+    let instream = fs.createReadStream(__dirname + '/data/' + data.file); // @todo-r добавить проверку на существование
     let outstream = new stream;
     let rl = readline.createInterface(instream, outstream);
 

@@ -5,11 +5,11 @@ const uniqid = require('uniqid');
 const ws = new require('ws');
 const Scheduler = new require('./scheduler');
 
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const WS_PORT = process.env.WS_PORT || 8081;
 const WORKER_TIMEOUT = process.env.WORKER_TIMEOUT || 60000;
-const DEBUG = process.env.DEBUG || true;
+const DEBUG = process.env.DEBUG || false;
 
 class App {
 
@@ -30,8 +30,10 @@ class App {
                 }
                 catch (e) {
                     this.log(e.message);
-                    res.end('unknown error');
+                    res.end(e.message);
                 }
+            } else {
+                res.end('ok');
             }
         });
         server.listen(PORT, HOST, () => {

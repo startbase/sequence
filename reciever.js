@@ -7,7 +7,7 @@ const fs = require('fs');
 const DataStorage = require(__dirname + '/storage.js');
 const data_storage = new DataStorage();
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
 
