@@ -10,7 +10,7 @@ const WebSocketClient = require('./ws-client');
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
-const APP_SERVER_ADDR = process.env.APP_SERVER_ADDR || false;
+const APP_SERVER_URL = process.env.APP_SERVER_URL || 'ws://127.0.0.1:3000';
 
 const DATASET_SEGMENT = 0;
 const DATASET_PARTITION = 1;
@@ -131,9 +131,9 @@ function calculateSequence(data, callback) {
             sequences: num,
             statistics: {
                 time: {
-                    read_dataset: parseFloat((TIME_DATASET_READ_END-TIME_DATASET_READ_BEGIN)/1000).toFixed(2),
-                    count_sequences: parseFloat((TIME_SEQUENCES_END-TIME_SEQUENCES_BEGIN)/1000).toFixed(2),
-                    all:parseFloat((TIME_SEQUENCES_END-TIME_DATASET_READ_BEGIN)/1000).toFixed(2)
+                    read_dataset: parseFloat((TIME_DATASET_READ_END - TIME_DATASET_READ_BEGIN) / 1000).toFixed(2),
+                    count_sequences: parseFloat((TIME_SEQUENCES_END - TIME_SEQUENCES_BEGIN) / 1000).toFixed(2),
+                    all: parseFloat((TIME_SEQUENCES_END - TIME_DATASET_READ_BEGIN) / 1000).toFixed(2)
                 }
             }
         });
@@ -218,19 +218,16 @@ function log() {
 }
 
 function runSocket() {
-    if(!APP_SERVER_ADDR) {
-        console.error(`Socket client is inactive. Please set APP_SERVER_ADDR environment variable.
-        Example APP_SERVER_ADDR=ws://127.0.0.1:8081`);
-        return;
-    }
-    let socket = new WebSocketClient(APP_SERVER_ADDR, 2000);
+    let socket = new WebSocketClient(APP_SERVER_URL, 2000);
     socket.i.on('message', (raw_data) => {
         let data = JSON.parse(raw_data);
         calculateSequence(data, result => {
-            console.log(result);
+            log('ws recieve', result);
             socket.send(JSON.stringify(result));
         });
     });
+
+    // @todo дописать log на connect событие
 }
 
 runSocket();
