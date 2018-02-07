@@ -13,7 +13,7 @@ class App {
 
     constructor() {
         this.clients = new Map();
-        this.sceduler = new Scheduler();
+        this.sceduler = new Scheduler(); //  @todo-r sceduler -> scheduler
         this.stats_responds = [];
     }
 
@@ -26,20 +26,22 @@ class App {
                     req.on('end', () => this.processPost(req, res, JSON.parse(body)));
                 }
                 catch(e) {
-                    res.end('unknown error');
+                    res.end('unknown error'); // @todo-r тут можно писать ошибку e.message
                 }
             }
         });
         server.listen(PORT, HOST, () => {
-//            console.log('Server listent to: ', HOST, PORT);
+//            console.log('Server listent to: ', HOST, PORT); // @todo-r нужно log использовать
         });
     }
 
     processPost(req, res, body) {
         this.stats_responds = [];
+        this.stats_responds_num = 0;
         this.sceduler.run(body.storage, this.clients.size, data => {
             let stats = data.stats;
             let i = 0;
+
             this.clients.forEach(socket => {
                 data.files[i].forEach(file => {
                     try {
@@ -51,11 +53,12 @@ class App {
                         i++;
                     }
                     catch(e) {
-                        console.log(e);
+                        console.log(e); // @todo-r используй log
                     }
                 });
             });
-            let interval = setInterval(() => {
+
+            let interval = setInterval(() => { // @todo-r вынеси в функцию и дергай каждый push, уменьшим время на 1 секунду :)
                 if(this.stats_responds.length === i) {
                     stats = this.calculateResponseStats(stats);
                     res.writeHead(200, {"Content-Type": "application/json"});
@@ -66,7 +69,7 @@ class App {
             setTimeout(() => {
                 res.end('workers timeout');
                 clearInterval(interval);
-            }, 5000);
+            }, 5000); // @todo-r 5000 должна быть env и 60секунд
         });
     }
 
@@ -85,18 +88,19 @@ class App {
 
     initWSReceiver() {
         let web_socket_server = new ws.Server({
-            port: WS_PORT
+            port: WS_PORT // @todo-r а еще тут должен быть WS_HOST
         });
         web_socket_server.on('connection', (ws) => {
             const id = uniqid();
             this.clients.set(id, ws);
-            console.log('new connection ' + id, ws._socket.remoteAddress);
+            console.log('new connection ' + id, ws._socket.remoteAddress); // @todo-r используй log
 
             ws.on('message', (raw_data) => {
                 //hello data
 
                 let data = JSON.parse(raw_data);
                 this.stats_responds.push(data);
+
             });
 
             ws.on('close', () => {
@@ -109,6 +113,6 @@ class App {
         this.initWebServer();
         this.initWSReceiver();
     };
-};
+}
 
 (new App()).init();

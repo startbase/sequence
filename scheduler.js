@@ -1,14 +1,11 @@
 "use strict";
 
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 
 class Scheduler {
 
-    balance(files, workers_cnt) {
-        let processed_files = 0;
+    balance(files, workers_cnt) { // @todo-r мб static?
         let tasks = [];
         let files_per_worker = Math.ceil(files.length / workers_cnt);
         for (let i = 0; i < workers_cnt; i++) {
@@ -26,23 +23,25 @@ class Scheduler {
         let dir = path.join(__dirname, BASE_STORAGE_DIR, storage);
         fs.access(dir, err => {
             if(err) {
-                console.error('Can not read directory:', dir);
-                return;
+                console.error('Can not read directory:', dir); // @todo-r используй log
+                throw err;
             }
             fs.readdir(dir, (err, items) => {
                 if(err) {
-                    console.log(err);
-                    return;
+                    console.log(err); // @todo-r используй log
+                    throw err;
                 }
                 items.forEach(item => {
                     fs.stat(path.join(dir, item), (err, file_stats) => {
                         if(err) {
                             console.error('Cannot get', item, 'size');
-                            return;
+                            throw err;
                         }
-                        stats.processed.size += file_stats.size / 1000.0;
+
+                        let size = file_stats.size / 1000.0;
+                        stats.processed.size += size;
                         stats.tasks[path.join(storage, item)] = {};
-                        stats.tasks[path.join(storage, item)]['size'] = file_stats.size / 1000.0;
+                        stats.tasks[path.join(storage, item)]['size'] = size;
                     });
                 });
                 stats.processed.files = items.length;
