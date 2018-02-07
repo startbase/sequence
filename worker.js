@@ -107,7 +107,7 @@ function calculateSequence(data, callback) {
         log('File', full_path, 'does not exist');
         return;
     }
-    let instream = fs.createReadStream(full_path); // @todo-r добавить проверку на существование
+    let instream = fs.createReadStream(full_path);
     let outstream = new stream;
     let rl = readline.createInterface(instream, outstream);
 
