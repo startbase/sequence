@@ -5,10 +5,12 @@ const http = require('http');
 const fs = require('fs');
 const readline = require('readline');
 const stream = require('stream');
+const WebSocketClient = require('./ws-client');
 
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
+const APP_SERVER_ADDR = process.env.APP_SERVER_ADDR || false;
 
 const DATASET_SEGMENT = 0;
 const DATASET_PARTITION = 1;
@@ -24,7 +26,6 @@ const server = http.createServer(handler);
 server.listen(PORT, HOST, () => {
     log('Server listent to: ', HOST, PORT);
 });
-
 
 function check_sequence(rules, actions) {
 
@@ -97,6 +98,49 @@ function find_sequences(data, sequence_ql) {
     return finded_sequences;
 }
 
+function calculateSequence(data, callback) {
+
+    let TIME_DATASET_READ_BEGIN = Date.now();
+
+    let instream = fs.createReadStream(__dirname + '/data/' + data.file);
+    let outstream = new stream;
+    let rl = readline.createInterface(instream, outstream);
+
+
+    let sequences_data = new Map();
+
+    rl.on('line', (line) => {
+        let e = line.split("\t");
+
+        if (!sequences_data.has(e[DATASET_KEY])) {
+            sequences_data.set(e[DATASET_KEY], new Set());
+        }
+
+        sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
+    });
+
+    rl.on('close', () => {
+        let TIME_DATASET_READ_END = Date.now();
+
+        let TIME_SEQUENCES_BEGIN = Date.now();
+        let num = find_sequences(sequences_data, data.sequence);
+        let TIME_SEQUENCES_END = Date.now();
+
+        log(data);
+        callback({
+            sequences: num,
+            statistics: {
+                time: {
+                    read_dataset: parseFloat((TIME_DATASET_READ_END-TIME_DATASET_READ_BEGIN)/1000).toFixed(2),
+                    count_sequences: parseFloat((TIME_SEQUENCES_END-TIME_SEQUENCES_BEGIN)/1000).toFixed(2),
+                    all:parseFloat((TIME_SEQUENCES_END-TIME_DATASET_READ_BEGIN)/1000).toFixed(2)
+                }
+            }
+        });
+    });
+
+}
+
 function handler(request, response) {
     if (request.method !== 'POST') {
         return returnAccessDenied();
@@ -112,45 +156,9 @@ function handler(request, response) {
             returnResult({error: 'Sequnce not set'}, response);
         }
 
-        let TIME_DATASET_READ_BEGIN = Date.now();
-
-        let instream = fs.createReadStream(__dirname + '/data/' + data.file);
-        let outstream = new stream;
-        let rl = readline.createInterface(instream, outstream);
-
-
-        let sequences_data = new Map();
-
-        rl.on('line', (line) => {
-            let e = line.split("\t");
-
-            if (!sequences_data.has(e[DATASET_KEY])) {
-                sequences_data.set(e[DATASET_KEY], new Set());
-            }
-
-            sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
+        calculateSequence(data, result => {
+            returnResult(result, response);
         });
-
-        rl.on('close', () => {
-            let TIME_DATASET_READ_END = Date.now();
-
-            let TIME_SEQUENCES_BEGIN = Date.now();
-            let num = find_sequences(sequences_data, data.sequence);
-            let TIME_SEQUENCES_END = Date.now();
-
-            returnResult({
-                sequences: num,
-                statistics: {
-                    time: {
-                        read_dataset: parseFloat((TIME_DATASET_READ_END-TIME_DATASET_READ_BEGIN)/1000).toFixed(2),
-                        count_sequences: parseFloat((TIME_SEQUENCES_END-TIME_SEQUENCES_BEGIN)/1000).toFixed(2),
-                        all:parseFloat((TIME_SEQUENCES_END-TIME_DATASET_READ_BEGIN)/1000).toFixed(2)
-                    }
-                }
-            }, response);
-        });
-
-        log(data);
     });
 }
 
@@ -208,3 +216,21 @@ function log() {
     }
     console.log(arguments);
 }
+
+function runSocket() {
+    if(!APP_SERVER_ADDR) {
+        console.error(`Socket client is inactive. Please set APP_SERVER_ADDR environment variable.
+        Example APP_SERVER_ADDR=ws://127.0.0.1:8081`);
+        return;
+    }
+    let socket = new WebSocketClient(APP_SERVER_ADDR, 2000);
+    socket.i.on('message', (raw_data) => {
+        let data = JSON.parse(raw_data);
+        calculateSequence(data, result => {
+            console.log(result);
+            socket.send(JSON.stringify(result));
+        });
+    });
+}
+
+runSocket();

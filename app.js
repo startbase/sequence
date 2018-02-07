@@ -1,46 +1,83 @@
 'use strict';
 
 const express = require('express');
-const nconf = require('nconf');
 const bodyParser = require('body-parser');
 const uniqid = require('uniqid');
 const ws = new require('ws');
+const Scheduler = new require('./scheduler');
 
-nconf.argv();
-
+const PORT = process.env.PORT || 3006;
+const HOST = process.env.HOST || '127.0.0.1';
 
 class App {
 
     constructor() {
-        this.clients = {};
+        this.clients = new Map();
+        this.sceduler = new Scheduler();
+        this.stats_responds = [];
     }
 
     initWebServer() {
-        let port = nconf.get('port');
-        let host = nconf.get('host');
-
         let web_app = new express();
 
         web_app.use(bodyParser.json());
         web_app.use(bodyParser.urlencoded({extended: true}));
 
-        port = port || false;
-        host = host || false;
-
-        if(port === false || host === false) {
-            console.error('web server could not start');
-            return;
-            process.exit(-1);
-        }
-
         web_app.get('/get', (req, res) => {
             res.end('213');
         });
 
-        web_app.listen(port, host, () => {
-            console.log('server start ' + host + ' listening on port ' + port);
+        web_app.post('/', (req, res) => {
+            this.stats_responds = [];
+            this.sceduler.run(req.body.storage, this.clients.size, data => {
+                let stats = data.stats;
+                let i = 0;
+                this.clients.forEach(socket => {
+                    data.files[i].forEach(file => {
+                        try {
+                            let query = {
+                                file: file,
+                                sequence: req.body.sequence
+                            };
+                            socket.send(JSON.stringify(query));
+                            i++;
+                        }
+                        catch(e) {
+                            console.log(e);
+                        }
+                    });
+                });
+                let interval = setInterval(() => {
+                    if(this.stats_responds.length === i) {
+                        stats = this.calculateResponseStats(stats);
+                        console.log(stats);
+                        res.end(JSON.stringify(stats));
+                        clearInterval(interval);
+                    }
+                }, 1000);
+                setTimeout(() => {
+                    res.end('workers timeout');
+                    clearInterval(interval);
+                }, 5000);
+            });
         });
 
+        web_app.listen(PORT, HOST, () => {
+            console.log('server start ' + HOST + ' listening on port ' + PORT);
+        });
+    }
+
+    calculateResponseStats(stats) {
+        this.stats_responds.forEach(body => {
+            stats.sequence_count += body.sequences;
+            stats.processed.time += +body.statistics.time.all;
+            let task = {
+                time: +body.statistics.time.all,
+                sequence: body.sequences
+            };
+            stats.tasks.push(task);
+        });
+        return stats;
     }
 
     initWSReceiver() {
@@ -49,19 +86,18 @@ class App {
         });
         web_socket_server.on('connection', (ws) => {
             const id = uniqid();
-            this.clients[id] = ws;
+            this.clients.set(id, ws);
             console.log('new connection ' + id, ws._socket.remoteAddress);
 
             ws.on('message', (raw_data) => {
                 //hello data
 
-                const data = JSON.parse(raw_data);
-                console.log(data);
+                let data = JSON.parse(raw_data);
+                this.stats_responds.push(data);
             });
 
             ws.on('close', () => {
-                console.log('' + id);
-                delete this.clients[id];
+                this.clients.delete(id);
             });
         });
     };

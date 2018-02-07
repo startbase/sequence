@@ -5,82 +5,23 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = process.env.PORT || 3006;
-const HOST = process.env.HOST || '127.0.0.1';
-
 class Scheduler {
 
-    sendTask(worker, tasks, sequence, stats, callback) {
-        const query = {
-            "file": tasks,
-            "sequence": sequence
-        };
-        const url_data = url.parse(worker.url);
-        const options = {
-            hostname: url_data.hostname,
-            port: url_data.port,
-            path: '/',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        };
-
-        const req = http.request(options, res => {
-            res.on('data', (body) => {
-                try {
-                    body = JSON.parse(body.toString());
-                    stats.sequence_count += body.sequences;
-                    stats.processed.time += +body.statistics.time.all;
-                    if(!stats.tasks[tasks]) {
-                        stats.tasks[tasks] = {};
-                    }
-                    stats.tasks[tasks]['worker'] = worker.url;
-                    stats.tasks[tasks]['time'] = +body.statistics.time.all;
-                    stats.tasks[tasks]['sequence'] = body.sequences;
-                }
-                catch(e) {
-                    console.log('Error parsing task result', e);
-                }
-                finally {
-                    callback();
-                }
-            });
-        });
-        req.on('error', e => {
-            stats.tasks[tasks]['error'] = true;
-            stats.processed.errors++;
-            console.log('Problem with request: ' + e.message);
-            callback();
-        });
-
-        req.write(JSON.stringify(query));
-        req.end();
-    }
-
-    balance(files, workers, sequence, stats, callback) {
+    balance(files, workers_cnt) {
         let processed_files = 0;
-        stats.processed.files = files.length;
-        stats.processed.workers = workers.length;
-        let files_per_worker = Math.ceil(files.length / workers.length);
-        for (let i = 0; i < workers.length; i++) {
+        let tasks = [];
+        let files_per_worker = Math.ceil(files.length / workers_cnt);
+        for (let i = 0; i < workers_cnt; i++) {
             let cur_elem = i * files_per_worker;
             if(cur_elem >= files.length) {
                 break;
             }
-            let tasks = files.slice(cur_elem, cur_elem + files_per_worker);
-            tasks.forEach(task => {
-                this.sendTask(workers[i], task, sequence || [], stats, () => {
-                    processed_files++;
-                    if(processed_files === stats.processed.files) {
-                        callback();
-                    }
-                });
-            });
+            tasks.push(files.slice(cur_elem, cur_elem + files_per_worker));
         }
+        return tasks;
     };
 
-    readdir(storage, workers, sequence, stats, callback) {
+    readdir(storage, workers_cnt, stats, callback) {
         const BASE_STORAGE_DIR = './data';
         let dir = path.join(__dirname, BASE_STORAGE_DIR, storage);
         fs.access(dir, err => {
@@ -104,52 +45,30 @@ class Scheduler {
                         stats.tasks[path.join(storage, item)]['size'] = file_stats.size / 1000.0;
                     });
                 });
-                this.balance(items.map(file => path.join(storage, file)), workers, sequence, stats, callback);
+                stats.processed.files = items.length;
+                stats.processed.workers = workers_cnt;
+                let res = this.balance(items.map(file => path.join(storage, file)), workers_cnt);
+                callback({files: res, stats: stats});
             });
         });
     }
 
-    run() {
-        const server = http.createServer((req, res) => {
-            let body = [];
-            let stats = {
-                'sequence_count': 0,
-                'processed': {
-                    'files': 0,
-                    'size': 0, // kb
-                    'workers': 0,
-                    'time': 0, // seconds
-                    'errors': 0
-                },
-                'tasks': {}
-            };
-            req.on('error', err => {
-                console.error(err);
-            });
-            req.on('data', chunk => {
-                body.push(chunk);
-            });
-            req.on('end', () => {
-                try {
-                    body = JSON.parse(Buffer.concat(body).toString());
-                }
-                catch(e) {
-                    console.error('Error parsing responce', e);
-                    res.end();
-                    return;
-                }
-                this.readdir(body.storage, body.workers, body.sequence, stats, items => {
-                    res.writeHead(200, {"Content-Type": "application/json"});
-                    res.end(JSON.stringify(stats));
-                });
-            });
-        });
-
-        server.listen(PORT, HOST, () => {
-//            console.log('Server listent to: ', HOST, PORT);
+    run(storage, workers_cnt, callback) {
+        let stats = {
+            'sequence_count': 0,
+            'processed': {
+                'files': 0,
+                'size': 0, // kb
+                'workers': 0,
+                'time': 0, // seconds
+                'errors': 0
+            },
+            'tasks': []
+        };
+        this.readdir(storage, workers_cnt, stats, res => {
+            callback(res);
         });
     }
-
 }
 
-(new Scheduler()).run();
+module.exports = Scheduler;
