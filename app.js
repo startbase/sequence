@@ -1,13 +1,13 @@
 'use strict';
 
-const express = require('express');
-const bodyParser = require('body-parser');
+const http = require('http');
 const uniqid = require('uniqid');
 const ws = new require('ws');
 const Scheduler = new require('./scheduler');
 
 const PORT = process.env.PORT || 3006;
 const HOST = process.env.HOST || '127.0.0.1';
+const WS_PORT = process.env.WS_PORT || 8081;
 
 class App {
 
@@ -18,52 +18,55 @@ class App {
     }
 
     initWebServer() {
-        let web_app = new express();
-
-        web_app.use(bodyParser.json());
-        web_app.use(bodyParser.urlencoded({extended: true}));
-
-        web_app.get('/get', (req, res) => {
-            res.end('213');
+        const server = http.createServer((req, res) => {
+            if(req.method === 'POST') {
+                let body = '';
+                req.on('data', data => body += data);
+                try {
+                    req.on('end', () => this.processPost(req, res, JSON.parse(body)));
+                }
+                catch(e) {
+                    res.end('unknown error');
+                }
+            }
         });
+        server.listen(PORT, HOST, () => {
+//            console.log('Server listent to: ', HOST, PORT);
+        });
+    }
 
-        web_app.post('/', (req, res) => {
-            this.stats_responds = [];
-            this.sceduler.run(req.body.storage, this.clients.size, data => {
-                let stats = data.stats;
-                let i = 0;
-                this.clients.forEach(socket => {
-                    data.files[i].forEach(file => {
-                        try {
-                            let query = {
-                                file: file,
-                                sequence: req.body.sequence
-                            };
-                            socket.send(JSON.stringify(query));
-                            i++;
-                        }
-                        catch(e) {
-                            console.log(e);
-                        }
-                    });
-                });
-                let interval = setInterval(() => {
-                    if(this.stats_responds.length === i) {
-                        stats = this.calculateResponseStats(stats);
-                        console.log(stats);
-                        res.end(JSON.stringify(stats));
-                        clearInterval(interval);
+    processPost(req, res, body) {
+        this.stats_responds = [];
+        this.sceduler.run(body.storage, this.clients.size, data => {
+            let stats = data.stats;
+            let i = 0;
+            this.clients.forEach(socket => {
+                data.files[i].forEach(file => {
+                    try {
+                        let query = {
+                            file: file,
+                            sequence: body.sequence
+                        };
+                        socket.send(JSON.stringify(query));
+                        i++;
                     }
-                }, 1000);
-                setTimeout(() => {
-                    res.end('workers timeout');
-                    clearInterval(interval);
-                }, 5000);
+                    catch(e) {
+                        console.log(e);
+                    }
+                });
             });
-        });
-
-        web_app.listen(PORT, HOST, () => {
-            console.log('server start ' + HOST + ' listening on port ' + PORT);
+            let interval = setInterval(() => {
+                if(this.stats_responds.length === i) {
+                    stats = this.calculateResponseStats(stats);
+                    res.writeHead(200, {"Content-Type": "application/json"});
+                    res.end(JSON.stringify(stats));
+                    clearInterval(interval);
+                }
+            }, 1000);
+            setTimeout(() => {
+                res.end('workers timeout');
+                clearInterval(interval);
+            }, 5000);
         });
     }
 
@@ -82,7 +85,7 @@ class App {
 
     initWSReceiver() {
         let web_socket_server = new ws.Server({
-            port: 8081
+            port: WS_PORT
         });
         web_socket_server.on('connection', (ws) => {
             const id = uniqid();
