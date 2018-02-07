@@ -102,7 +102,12 @@ function calculateSequence(data, callback) {
 
     let TIME_DATASET_READ_BEGIN = Date.now();
 
-    let instream = fs.createReadStream(__dirname + '/data/' + data.file); // @todo-r добавить проверку на существование
+    let full_path = __dirname + '/data/' + data.file;
+    if(!fs.accessSync(full_path)) {
+        log('File', full_path, 'does not exist');
+        return;
+    }
+    let instream = fs.createReadStream(full_path); // @todo-r добавить проверку на существование
     let outstream = new stream;
     let rl = readline.createInterface(instream, outstream);
 
@@ -226,6 +231,7 @@ function runSocket() {
             socket.send(JSON.stringify(result));
         });
     });
+    socket.i.on('open', () => log('Socket connected'));
 
     // @todo дописать log на connect событие
 }

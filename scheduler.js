@@ -23,22 +23,21 @@ class Scheduler {
     readdir(storage, workers_cnt, stats, callback) {
         const BASE_STORAGE_DIR = './data';
         let dir = path.join(__dirname, BASE_STORAGE_DIR, storage);
-        // @todo-r добавить проверку на существование
         fs.access(dir, err => {
             if(err) {
                 this.log('Can not read directory:' +  dir);
-                throw err;
+                return;
             }
             fs.readdir(dir, (err, items) => {
                 if(err) {
                     this.log(err);
-                    throw err;
+                    return;
                 }
                 items.forEach(item => {
                     fs.stat(path.join(dir, item), (err, file_stats) => {
                         if(err) {
                             this.log('Cannot get', item, 'size');
-                            throw err;
+                            return;
                         }
 
                         let size = file_stats.size / 1000.0;
