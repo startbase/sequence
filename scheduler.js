@@ -7,7 +7,7 @@ const DEBUG = process.env.DEBUG || true;
 
 class Scheduler {
 
-    balance(files, workers_cnt) { // @todo-r мб static?
+    static balance(files, workers_cnt) {
         let tasks = [];
         let files_per_worker = Math.ceil(files.length / workers_cnt);
         for (let i = 0; i < workers_cnt; i++) {
@@ -48,7 +48,7 @@ class Scheduler {
                 });
                 stats.processed.files = items.length;
                 stats.processed.workers = workers_cnt;
-                let res = this.balance(items.map(file => path.join(storage, file)), workers_cnt);
+                let res = Scheduler.balance(items.map(file => path.join(storage, file)), workers_cnt);
                 callback({files: res, stats: stats});
             });
         });
