@@ -21,14 +21,14 @@ class App {
 
     initWebServer() {
         const server = http.createServer((req, res) => {
-            if(req.method === 'POST') {
+            if (req.method === 'POST') {
                 this.cur_server_res = res;
                 let body = '';
                 req.on('data', data => body += data);
                 try {
                     req.on('end', () => this.processPost(req, res, JSON.parse(body)));
                 }
-                catch(e) {
+                catch (e) {
                     this.log(e.message);
                     res.end('unknown error');
                 }
@@ -57,7 +57,7 @@ class App {
                         socket.send(JSON.stringify(query));
                         this.worker_iterator++;
                     }
-                    catch(e) {
+                    catch (e) {
                         this.log(e.message);
                     }
                 });
@@ -72,7 +72,7 @@ class App {
     sendUserResponse() {
         this.workers_responds++;
         console.log(this.workers_responds, this.worker_iterator);
-        if(this.workers_responds === this.worker_iterator) {
+        if (this.workers_responds === this.worker_iterator) {
             this.stats = this.calculateResponseStats(this.stats);
             this.cur_server_res.writeHead(200, {"Content-Type": "application/json"});
             this.cur_server_res.end(JSON.stringify(this.stats));
@@ -117,9 +117,10 @@ class App {
     };
 
     log(message) {
-        if(DEBUG) {
-            console.log(message);
+        if (DEBUG !== 'true') {
+            return;
         }
+        console.log(arguments);
     }
 
     init() {

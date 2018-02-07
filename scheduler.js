@@ -72,9 +72,10 @@ class Scheduler {
     }
 
     log(message) {
-        if(DEBUG) {
-            console.log(message);
+        if (DEBUG !== 'true') {
+            return;
         }
+        console.log(arguments);
     }
 }
 
