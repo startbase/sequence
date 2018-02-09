@@ -45,25 +45,26 @@ class App {
         this.stats_responds = [];
         this.stats_responds_num = 0;
         this.workers_responds = 0;
-        this.scheduler.run(body.storage, this.clients.size, data => {
+        this.scheduler.run(body.storage, data => {
             this.stats = data.stats;
             this.worker_iterator = 0;
-
-            this.clients.forEach(socket => {
-                data.files[this.worker_iterator].forEach(file => {
+            while(this.worker_iterator < data.files.length) {
+                this.clients.forEach(socket => {
+                    if(!data.files[this.worker_iterator]) {
+                        return;
+                    }
                     try {
                         let query = {
-                            file: file,
+                            file: data.files[this.worker_iterator++],
                             sequence: body.sequence
                         };
                         socket.send(JSON.stringify(query));
-                        this.worker_iterator++;
                     }
                     catch (e) {
                         this.log(e.message);
                     }
                 });
-            });
+            }
 
             setTimeout(() => {
                 res.end('workers timeout');

@@ -223,17 +223,16 @@ function log() {
 }
 
 function runSocket() {
-    let socket = new WebSocketClient(APP_SERVER_URL, 2000);
-    socket.i.on('message', (raw_data) => {
-        let data = JSON.parse(raw_data);
-        calculateSequence(data, result => {
-            log('ws recieve', result);
-            socket.send(JSON.stringify(result));
+    let socket = new WebSocketClient(APP_SERVER_URL, 2000, ws => {
+        ws.on('message', (raw_data) => {
+            let data = JSON.parse(raw_data);
+             calculateSequence(data, result => {
+                log('ws recieve', result);
+                socket.send(JSON.stringify(result));
+             });
         });
+        ws.on('open', () => log('Socket connected'));
     });
-    socket.i.on('open', () => log('Socket connected'));
-
-    // @todo дописать log на connect событие
 }
 
 runSocket();

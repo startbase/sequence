@@ -7,20 +7,7 @@ const DEBUG = process.env.DEBUG || true;
 
 class Scheduler {
 
-    static balance(files, workers_cnt) {
-        let tasks = [];
-        let files_per_worker = Math.ceil(files.length / workers_cnt);
-        for (let i = 0; i < workers_cnt; i++) {
-            let cur_elem = i * files_per_worker;
-            if(cur_elem >= files.length) {
-                break;
-            }
-            tasks.push(files.slice(cur_elem, cur_elem + files_per_worker));
-        }
-        return tasks;
-    };
-
-    readdir(storage, workers_cnt, stats, callback) {
+    readdir(storage, stats, callback) {
         const BASE_STORAGE_DIR = './data';
         let dir = path.join(__dirname, BASE_STORAGE_DIR, storage);
         fs.access(dir, err => {
@@ -47,14 +34,12 @@ class Scheduler {
                     });
                 });
                 stats.processed.files = items.length;
-                stats.processed.workers = workers_cnt;
-                let res = Scheduler.balance(items.map(file => path.join(storage, file)), workers_cnt);
-                callback({files: res, stats: stats});
+                callback({files: items.map(file => path.join(storage, file)), stats: stats});
             });
         });
     }
 
-    run(storage, workers_cnt, callback) {
+    run(storage, callback) {
         let stats = {
             'sequence_count': 0,
             'processed': {
@@ -66,7 +51,7 @@ class Scheduler {
             },
             'tasks': []
         };
-        this.readdir(storage, workers_cnt, stats, res => {
+        this.readdir(storage, stats, res => {
             callback(res);
         });
     }
