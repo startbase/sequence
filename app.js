@@ -43,7 +43,6 @@ class App {
 
     processPost(req, res, body) {
         this.stats_responds = [];
-        this.stats_responds_num = 0;
         this.workers_responds = 0;
         this.scheduler.run(body.storage, data => {
             this.stats = data.stats;
@@ -74,7 +73,7 @@ class App {
 
     sendUserResponse() {
         this.workers_responds++;
-        console.log(this.workers_responds, this.worker_iterator);
+
         if (this.workers_responds === this.worker_iterator) {
             this.stats = this.calculateResponseStats(this.stats);
             this.cur_server_res.writeHead(200, {"Content-Type": "application/json"});
@@ -120,7 +119,7 @@ class App {
     };
 
     log(message) {
-        if (DEBUG !== 'true') {
+        if (!DEBUG) {
             return;
         }
         console.log(arguments);
