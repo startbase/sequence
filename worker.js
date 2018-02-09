@@ -103,10 +103,28 @@ function calculateSequence(data, callback) {
     let TIME_DATASET_READ_BEGIN = Date.now();
 
     let full_path = __dirname + '/data/' + data.file;
-    if(!fs.accessSync(full_path)) {
-        log('File', full_path, 'does not exist');
+
+    try {
+        fs.accessSync(full_path);
+    } catch (e) {
+        log('File ', full_path, 'doesn\'t exist');
+        callback({
+            sequences: 0,
+            statistics: {
+                time: {
+                    read_dataset: 0,
+                    count_sequences: 0,
+                    all: 0
+                }
+            },
+            error:e.message
+        }); // @todo сделать обработку ошибки в app
+
+        returnResult(e.message);
+
         return;
     }
+
     let instream = fs.createReadStream(full_path);
     let outstream = new stream;
     let rl = readline.createInterface(instream, outstream);
