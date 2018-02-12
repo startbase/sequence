@@ -250,6 +250,7 @@ function runSocket() {
              });
         });
         ws.on('open', () => log('Socket connected'));
+        ws.on('error', (e) => log('Socket error', e.message));
     });
 }
 

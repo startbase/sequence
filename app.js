@@ -102,19 +102,28 @@ class App {
         web_socket_server.on('connection', (ws) => {
             const id = uniqid();
             this.clients.set(id, ws);
-            this.log('new connection ' + id, ws._socket.remoteAddress);
+            this.log('new connection ', id, ws._socket.remoteAddress);
 
             ws.on('message', (raw_data) => {
-                //hello data
 
-                let data = JSON.parse(raw_data);
+                try {
+                    let data = JSON.parse(raw_data);
+                    log('data from worker:', data);
+                    // @todo-r а что тут делаем с датой?
+                } catch (e) {
+                    log('Error from worker:', e.message);
+                }
+
                 this.sendUserResponse();
 
             });
 
             ws.on('close', () => {
+                log('client disconected', id);
                 this.clients.delete(id);
             });
+
+            // @todo-r сделать обработку ошибки
         });
     };
 
