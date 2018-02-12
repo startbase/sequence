@@ -17,6 +17,7 @@ class App {
         this.clients = new Map();
         this.scheduler = new Scheduler();
         this.stats = {};
+        this.stats_responds = [];
     }
 
     initWebServer() {
@@ -85,6 +86,7 @@ class App {
         this.stats_responds.forEach(body => {
             stats.sequence_count += body.sequences;
             stats.processed.time += +body.statistics.time.all;
+            stats.processed.workers++;
             let task = {
                 time: +body.statistics.time.all,
                 sequence: body.sequences
@@ -108,10 +110,10 @@ class App {
 
                 try {
                     let data = JSON.parse(raw_data);
-                    log('data from worker:', data);
-                    // @todo-r а что тут делаем с датой?
+                    this.stats_responds.push(data);
+                    this.log('data from worker:', data);
                 } catch (e) {
-                    log('Error from worker:', e.message);
+                    this.log('Error from worker:', e.message);
                 }
 
                 this.sendUserResponse();
@@ -119,7 +121,7 @@ class App {
             });
 
             ws.on('close', () => {
-                log('client disconected', id);
+                this.log('client disconected', id);
                 this.clients.delete(id);
             });
 
