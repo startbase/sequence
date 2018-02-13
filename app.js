@@ -125,7 +125,9 @@ class App {
                 this.clients.delete(id);
             });
 
-            // @todo-r сделать обработку ошибки
+            ws.on('error', e => {
+                this.log(e);
+            });
         });
     };
 

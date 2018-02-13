@@ -11,14 +11,13 @@ function WebSocketClient(url, reconnect_interval, callback) {
 
 WebSocketClient.prototype.open = function() {
     this.i = new WebSocket(this.url);
-    this.init(this.i);
-
     this.i.on('error', e => {});
     this.i.on('close',(e) => {
         if(e !== 1000) {
             this.reconnect();
         }
     });
+    this.init(this.i);
 };
 WebSocketClient.prototype.send = function(data,option) {
     if(this.i.readyState === WebSocket.OPEN) {
