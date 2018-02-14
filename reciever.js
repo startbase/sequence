@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
 
-const MAX_KEYS_IN_FILE = 1000;
+const MAX_KEYS_IN_FILE = 500;
 
 const server = http.createServer(handler);
 

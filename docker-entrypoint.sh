@@ -25,6 +25,14 @@ reciever() {
   exec node /usr/src/app/reciever.js
 }
 
+test() {
+  RUN=${RUN:-"false"}
+
+  echo "Starting tests"
+  cd /usr/src/app/ && exec npm test
+}
+
+
 help() {
   echo "Sequence Docker"
   echo ""
@@ -34,6 +42,7 @@ help() {
   echo "app -- start application"
   echo "worker -- start workers for tasks"
   echo "reciever -- recieve events"
+  echo "test -- exec tests"
   echo ""
   echo "shell -- open shell"
 }
@@ -50,6 +59,10 @@ case "$1" in
   reciever)
     shift
     reciever
+    ;;
+  test)
+    shift
+    test
     ;;
   shell)
     exec /bin/bash

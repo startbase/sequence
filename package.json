@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "worker": "node worker.js"
+    "worker": "node worker.js",
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/startbase/sequence#readme",
   "dependencies": {
+    "mocha": "^5.0.1",
     "uniqid": "^4.1.1",
     "ws": "^4.0.0"
   }

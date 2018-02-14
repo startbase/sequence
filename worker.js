@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const DEBUG = process.env.DEBUG || false;
 const APP_SERVER_URL = process.env.APP_SERVER_URL || 'ws://127.0.0.1:8081';
+const RUN = process.env.RUN || true;
 
 const DATASET_SEGMENT = 0;
 const DATASET_PARTITION = 1;
@@ -21,237 +22,250 @@ const DATASET_ACTION = 4;
 const RULE_EQUAL = 'equal';
 const RULE_ANY = 'any';
 
-const server = http.createServer(handler);
 
-server.listen(PORT, HOST, () => {
-    log('Server listent to: ', HOST, PORT);
-});
+class Worker {
 
-function check_sequence(rules, actions) {
+    run() {
+        let server = http.createServer(this.handler);
+        server.listen(PORT, HOST, () => {
+            Worker.log('Server listent to: ', HOST, PORT);
+        });
 
-    log('rules', rules);
-    log('actions', actions);
+        this.runSocket();
+    }
 
-    let index = 0;
-    let skip = 0;
-    let any = false;
-    for (let i = 0; i < rules.length; i++) {
-        if (rules[i].rule === RULE_ANY) {
-            log('set any mode', true);
-            any = true;
-            continue;
+    runSocket() {
+        let socket = new WebSocketClient(APP_SERVER_URL, 2000, ws => {
+            ws.on('message', (raw_data) => {
+                let data = JSON.parse(raw_data);
+                this.calculateSequence(data, result => {
+                    Worker.log('ws recieve', result);
+                    socket.send(JSON.stringify(result));
+                });
+            });
+            ws.on('open', () => Worker.log('Socket connected'));
+            ws.on('error', (e) => Worker.log('Socket error', e.message));
+        });
+    }
+
+    handler(request, response) {
+        if (request.method !== 'POST') {
+            return Worker.returnAccessDenied();
         }
 
-        if (rules[i].rule !== RULE_EQUAL) {
-            continue;
-        }
+        this.processData(request, response, (data) => {
+            if (!data.file || data.file.length <= 0) {
+                Worker.returnResult({error: 'File not set'}, response);
+            }
 
-        let rule_action = rules[i].action_key;
+            if (!data.sequence) {
+                Worker.returnResult({error: 'Sequnce not set'}, response);
+            }
 
-        for (let j = skip; j < actions.length; j++) {
+            this.calculateSequence(data, result => {
+                Worker.returnResult(result, response);
+            });
+        });
+    }
 
-            let action_name = actions[j].action || null;
+    check_sequence(rules, actions) {
 
-            log('find:' + i + ':' + j + '_' + rule_action + '==' + action_name + '::' + (rule_action === action_name ? 'true' : 'false'));
+        Worker.log('rules', rules);
+        Worker.log('actions', actions);
 
-            if (rule_action === action_name) {
-                index++;
-                skip = j + 1;
+        let index = 0;
+        let skip = 0;
+        let any = false;
+        for (let i = 0; i < rules.length; i++) {
+            if (rules[i].rule === RULE_ANY) {
+                Worker.log('set any mode', true);
+                any = true;
+                continue;
+            }
 
-                if (any) {
-                    any = false;
-                    log('set any mode', false);
+            if (rules[i].rule !== RULE_EQUAL) {
+                continue;
+            }
+
+            let rule_action = rules[i].action_key;
+
+            for (let j = skip; j < actions.length; j++) {
+
+                let action_name = actions[j].action || null;
+
+                Worker.log('find:' + i + ':' + j + '_' + rule_action + '==' + action_name + '::' + (rule_action === action_name ? 'true' : 'false'));
+
+                if (rule_action === action_name) {
+                    index++;
+                    skip = j + 1;
+
+                    if (any) {
+                        any = false;
+                        Worker.log('set any mode', false);
+                    }
+
+                    break;
+                } else if (!any) {
+                    i = rules.length + 1;
+                    break;
                 }
-
-                break;
-            } else if (!any) {
-                i = rules.length + 1;
-                break;
             }
         }
-    }
 
-    let ind = rules.reduce((sum, current) => {
-        if (current.rule !== RULE_ANY) {
-            return sum = sum + 1;
-        }
-        return sum;
-    }, 0);
-
-    return ind === index ? 1 : 0;
-}
-
-function find_sequences(data, sequence_ql) {
-
-    log('find sequence:', sequence_ql);
-
-    let finded_sequences = 0;
-
-    data.forEach((value) => {
-
-        let actions = Array.from(value);
-        actions.sort(sort_actions_by_date);
-
-        finded_sequences += check_sequence(sequence_ql, actions);
-    });
-
-    return finded_sequences;
-}
-
-function calculateSequence(data, callback) {
-
-    let TIME_DATASET_READ_BEGIN = Date.now();
-
-    let full_path = __dirname + '/data/' + data.file;
-
-    try {
-        fs.accessSync(full_path);
-    } catch (e) {
-        log('File ', full_path, 'doesn\'t exist');
-        callback({
-            sequences: 0,
-            statistics: {
-                time: {
-                    read_dataset: 0,
-                    count_sequences: 0,
-                    all: 0
-                }
-            },
-            error:e.message
-        }); // @todo сделать обработку ошибки в app
-
-        returnResult(e.message);
-
-        return;
-    }
-
-    let instream = fs.createReadStream(full_path);
-    let outstream = new stream;
-    let rl = readline.createInterface(instream, outstream);
-
-
-    let sequences_data = new Map();
-
-    rl.on('line', (line) => {
-        let e = line.split("\t");
-
-        if (!sequences_data.has(e[DATASET_KEY])) {
-            sequences_data.set(e[DATASET_KEY], new Set());
-        }
-
-        sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
-    });
-
-    rl.on('close', () => {
-        let TIME_DATASET_READ_END = Date.now();
-
-        let TIME_SEQUENCES_BEGIN = Date.now();
-        let num = find_sequences(sequences_data, data.sequence);
-        let TIME_SEQUENCES_END = Date.now();
-
-        log(data);
-        callback({
-            sequences: num,
-            statistics: {
-                time: {
-                    read_dataset: parseFloat((TIME_DATASET_READ_END - TIME_DATASET_READ_BEGIN) / 1000).toFixed(2),
-                    count_sequences: parseFloat((TIME_SEQUENCES_END - TIME_SEQUENCES_BEGIN) / 1000).toFixed(2),
-                    all: parseFloat((TIME_SEQUENCES_END - TIME_DATASET_READ_BEGIN) / 1000).toFixed(2)
-                }
+        let ind = rules.reduce((sum, current) => {
+            if (current.rule !== RULE_ANY) {
+                return sum = sum + 1;
             }
-        });
-    });
+            return sum;
+        }, 0);
 
-}
-
-function handler(request, response) {
-    if (request.method !== 'POST') {
-        return returnAccessDenied();
+        return ind === index ? 1 : 0;
     }
 
-    processData(request, response, (data) => {
+    find_sequences(data, sequence_ql) {
 
-        if (!data.file || data.file.length <= 0) {
-            returnResult({error: 'File not set'}, response);
-        }
+        Worker.log('find sequence:', sequence_ql);
 
-        if (!data.sequence) {
-            returnResult({error: 'Sequnce not set'}, response);
-        }
+        let finded_sequences = 0;
 
-        calculateSequence(data, result => {
-            returnResult(result, response);
+        data.forEach((value) => {
+
+            let actions = Array.from(value);
+            actions.sort(Worker.sort_actions_by_date);
+
+            finded_sequences += this.check_sequence(sequence_ql, actions);
         });
-    });
-}
 
-function processData(request, response, callback) {
+        return finded_sequences;
+    }
 
-    let body = '';
-    request.on('data', (data) => {
+    calculateSequence(data, callback) {
 
-        // Too much POST data, kill the connection!
-        // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
-        if (data.length > 1e6) {
-            response.writeHead(413, {'Content-Type': 'text/plain'}).end();
-            request.connection.destroy();
-        }
+        let TIME_DATASET_READ_BEGIN = Date.now();
 
-        body += data;
-    });
+        let full_path = __dirname + '/data/' + data.file;
 
-    request.on('end', () => {
         try {
-            body = JSON.parse(body);
-            callback(body);
+            fs.accessSync(full_path);
         } catch (e) {
-            returnResult(e.message.toString(), response);
+            Worker.log('File ', full_path, 'doesn\'t exist');
+            callback({
+                sequences: 0,
+                statistics: {
+                    time: {
+                        read_dataset: 0,
+                        count_sequences: 0,
+                        all: 0
+                    }
+                },
+                error:e.message
+            }); // @todo сделать обработку ошибки в app
+
+            Worker.returnResult(e.message);
+
+            return;
         }
-    });
-}
 
-function sort_actions_by_date(prev, next) {
-    if (prev.datetime > next.datetime) {
-        return 1;
-    }
-    if (prev.datetime < next.datetime) {
-        return -1;
-    }
-    return 0;
-}
+        let instream = fs.createReadStream(full_path);
+        let outstream = new stream;
+        let rl = readline.createInterface(instream, outstream);
 
-function returnResult(result, response) {
-    response.writeHead(200, {"Content-Type": "application/json"});
-    response.end(JSON.stringify(result));
-    return true;
-}
 
-function returnAccessDenied(response) {
-    response.writeHead(403, {"Content-Type": "text/plain"});
-    response.write("Forbidden");
-    response.end();
-    return true;
-}
+        let sequences_data = new Map();
 
-function log() {
-    if (DEBUG !== 'true') {
-        return;
-    }
-    console.log(arguments);
-}
+        rl.on('line', (line) => {
+            let e = line.split("\t");
 
-function runSocket() {
-    let socket = new WebSocketClient(APP_SERVER_URL, 2000, ws => {
-        ws.on('message', (raw_data) => {
-            let data = JSON.parse(raw_data);
-             calculateSequence(data, result => {
-                log('ws recieve', result);
-                socket.send(JSON.stringify(result));
-             });
+            if (!sequences_data.has(e[DATASET_KEY])) {
+                sequences_data.set(e[DATASET_KEY], new Set());
+            }
+
+            sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
         });
-        ws.on('open', () => log('Socket connected'));
-        ws.on('error', (e) => log('Socket error', e.message));
-    });
+
+        rl.on('close', () => {
+            let TIME_DATASET_READ_END = Date.now();
+
+            let TIME_SEQUENCES_BEGIN = Date.now();
+            let num = this.find_sequences(sequences_data, data.sequence);
+            let TIME_SEQUENCES_END = Date.now();
+
+            Worker.log(data);
+            callback({
+                sequences: num,
+                statistics: {
+                    time: {
+                        read_dataset: parseFloat((TIME_DATASET_READ_END - TIME_DATASET_READ_BEGIN) / 1000).toFixed(2),
+                        count_sequences: parseFloat((TIME_SEQUENCES_END - TIME_SEQUENCES_BEGIN) / 1000).toFixed(2),
+                        all: parseFloat((TIME_SEQUENCES_END - TIME_DATASET_READ_BEGIN) / 1000).toFixed(2)
+                    }
+                }
+            });
+        });
+
+    }
+
+
+    static sort_actions_by_date(prev, next) {
+        if (prev.datetime > next.datetime) {
+            return 1;
+        }
+        if (prev.datetime < next.datetime) {
+            return -1;
+        }
+        return 0;
+    }
+
+    processData(request, response, callback) {
+        let body = '';
+        request.on('data', (data) => {
+
+            // Too much POST data, kill the connection!
+            // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
+            if (data.length > 1e6) {
+                response.writeHead(413, {'Content-Type': 'text/plain'}).end();
+                request.connection.destroy();
+            }
+
+            body += data;
+        });
+
+        request.on('end', () => {
+            try {
+                body = JSON.parse(body);
+                callback(body);
+            } catch (e) {
+                Worker.returnResult(e.message.toString(), response);
+            }
+        });
+    }
+
+    static returnResult(result, response) {
+        response.writeHead(200, {"Content-Type": "application/json"});
+        response.end(JSON.stringify(result));
+        return true;
+    }
+
+    static returnAccessDenied(response) {
+        response.writeHead(403, {"Content-Type": "text/plain"});
+        response.write("Forbidden");
+        response.end();
+        return true;
+    }
+
+    static log() {
+        if (DEBUG !== 'true') {
+            return;
+        }
+        console.log(arguments);
+    }
+
+
+
 }
 
-runSocket();
+if (RUN === true) {
+    (new Worker()).run();
+}
+
+module.exports = Worker;
