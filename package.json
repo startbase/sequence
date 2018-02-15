@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "worker": "node worker.js",
-    "test": "mocha"
+    "test": "mocha ./test"
   },
   "repository": {
     "type": "git",

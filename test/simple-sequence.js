@@ -1,5 +1,8 @@
-let assert = require('assert');
+"use strict";
 
+process.env.RUN = false;
+
+let assert = require('assert');
 let Worker = require('../worker');
 
 let actions = [

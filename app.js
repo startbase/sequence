@@ -132,10 +132,9 @@ class App {
     };
 
     log(message) {
-        if (!DEBUG) {
-            return;
+        if (DEBUG) {
+            console.log(arguments);
         }
-        console.log(arguments);
     }
 
     init() {
