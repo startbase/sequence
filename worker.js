@@ -74,6 +74,7 @@ class Worker {
         Worker.log('actions', actions);
 
         let index = 0;
+        let action_last_date = 0;
         let skip = 0;
         let any = false;
         for (let i = 0; i < rules.length; i++) {
@@ -96,6 +97,31 @@ class Worker {
                 Worker.log('find:' + i + ':' + j + '_' + rule_action + '==' + action_name + '::' + (rule_action === action_name ? 'true' : 'false'));
 
                 if (rule_action === action_name) {
+                    let action_time = new Date(actions[j].datetime).getTime();
+
+                    if (!!rules[i].date_start && !!rules[i].date_end) {
+                        let date_start = new Date(rules[i].date_start).getTime();
+                        let date_end = new Date(rules[i].date_end).getTime();
+                        if(action_time >= date_start && action_time <= date_end) {
+                            // negative
+                            if (!any) {
+                                i = rules.length + 1;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (rules[i].previuos_action_time > 0) {
+                        if (action_time - action_last_date < rules[i].previuos_action_time) {
+                            // negative
+                            if (!any) {
+                                i = rules.length + 1;
+                                break;
+                            }
+                        }
+                    }
+
+                    action_last_date = action_time;
                     index++;
                     skip = j + 1;
 
