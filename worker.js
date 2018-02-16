@@ -76,7 +76,7 @@ class Worker {
             if(rule.date_end) {
                 let date = new Date(rule.date_end);
                 if(rule.date_end.indexOf(':') === -1) {
-                    date.setHours(23,59,59,999);
+                    date.setUTCHours(23,59,59,999);
                 }
                 rule.date_end = date.getTime();
             }
