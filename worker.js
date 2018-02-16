@@ -68,7 +68,28 @@ class Worker {
         });
     }
 
+    prepareRules(rules) {
+        rules.map(rule => {
+            if(rule.date_start) {
+                rule.date_start = new Date(rule.date_start).getTime();
+            }
+            if(rule.date_end) {
+                let date = new Date(rule.date_end);
+                if(rule.date_end.indexOf(':') === -1) {
+                    date.setHours(23,59,59,999);
+                }
+                rule.date_end = date.getTime();
+            }
+            if(rule.previuos_action_time) {
+                rule.previuos_action_time *= 1000;
+            }
+            return rule;
+        });
+        return rules;
+    }
+
     check_sequence(rules, actions) {
+        rules = this.prepareRules(rules);
 
         Worker.log('rules', rules);
         Worker.log('actions', actions);
@@ -99,11 +120,8 @@ class Worker {
                 if (rule_action === action_name) {
                     let action_time = new Date(actions[j].datetime).getTime();
 
-                    if (!!rules[i].date_start && !!rules[i].date_end) {
-                        let date_start = new Date(rules[i].date_start).getTime();
-                        let date_end = new Date(rules[i].date_end).getTime();
-                        let proper_date = action_time >= date_start && action_time <= date_end;
-
+                    if (rules[i].date_start && rules[i].date_end) {
+                        let proper_date = action_time >= rules[i].date_start && action_time <= rules[i].date_end;
                         if(!proper_date) {
                             i = rules.length + 1;
                             break;
@@ -111,7 +129,7 @@ class Worker {
                     }
 
                     if (rules[i].previuos_action_time > 0) {
-                        if (action_time - action_last_date > rules[i].previuos_action_time * 1000) {
+                        if (action_time - action_last_date > rules[i].previuos_action_time) {
                             i = rules.length + 1;
                             break;
                         }

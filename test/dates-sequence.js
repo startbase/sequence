@@ -2,7 +2,7 @@
 
 process.env.RUN = false;
 
-let assert = require('assert');
+const assert = require('chai').assert;
 let Worker = require('../worker');
 
 let actions = [
@@ -17,6 +17,29 @@ let actions = [
 
 describe('Dates sequence checks', function () {
     Worker = new Worker();
+
+    it('preparing ', function () {
+        let rules = [
+            {rule: "any"},
+            {rule: "equal", action_key: "action_1", date_start:"2017-01-01", date_end:"2018-01-01"},
+            {rule: "any"},
+            {rule: "equal", action_key: "action_2", previuos_action_time: 3600},
+            {rule: "any"},
+            {rule: "equal", action_key: "action_0",  date_start:"2017-01-01 15:51:15", date_end:"2018-01-01 13:31:13"}
+        ];
+
+        let expect = [
+            {rule: "any"},
+            {rule: "equal", action_key: "action_1", date_start:1483228800000, date_end:1514840399999},
+            {rule: "any"},
+            {rule: "equal", action_key: "action_2", previuos_action_time: 3600000},
+            {rule: "any"},
+            {rule: "equal", action_key: "action_0",  date_start:1483275075000, date_end:1514802673000}
+        ];
+
+        assert.deepEqual(expect, Worker.prepareRules(rules, actions));
+    });
+
     it('Any => Action 1 => Any => Action 2 => Any', function () {
         let rules = [
             {rule: "any"},
