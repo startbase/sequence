@@ -30,7 +30,7 @@ describe('Dates sequence checks', function () {
 
         let expect = [
             {rule: "any"},
-            {rule: "equal", action_key: "action_1", date_start:1483228800000, date_end:1514851199999},
+            {rule: "equal", action_key: "action_1", date_start:1483228800000, date_end:1514840399999},
             {rule: "any"},
             {rule: "equal", action_key: "action_2", previuos_action_time: 3600000},
             {rule: "any"},
