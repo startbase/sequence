@@ -1,18 +1,17 @@
-#Sequence
+# Sequence
 
 [![Build Status](https://travis-ci.org/startbase/sequence.svg?branch=master)](https://travis-ci.org/startbase/sequence)
 [![Coverage Status](https://coveralls.io/repos/github/startbase/sequence/badge.svg?branch=master)](https://coveralls.io/github/startbase/sequence?branch=master)
+[![License Type](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
 Pattern matching for event chains.
 
 
-<h1>Docker Compose</h1>
-<ol type="1">
-<li>Make sure you have a Docker machine up and running.</li>
-<li>Run docker-compose -f docker-compose.yml up</li>
-</ol>
+## Docker Compose
+* Make sure you have a Docker machine up and running;
+* Run docker-compose -f docker-compose.yml up.
 
-<h1>Send data</h1>
+## Send data
 
 ```javascript
 var request = require("request");
@@ -35,7 +34,7 @@ request(options, function (error, response, body) {
 });
 ```
 
-<h1>Find sequences</h1>
+## Find sequences
 
 ```javascript
 var request = require("request");
@@ -44,7 +43,18 @@ var options = { method: 'POST',
   url: 'http://localhost:3000/query',
   body: 
    { storage: 'december',
-     keys: [ '100_' ],
+     conditions: [
+         {
+             delimiter:'_', 
+             position:0, 
+             values:['100']
+         },
+         {
+             delimiter:'_',
+             position:2,
+             values:['100']// weakSet preferable
+         }
+     ],
      sequence: 
       [ { rule: 'any' },
         { rule: 'equal',
