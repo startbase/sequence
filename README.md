@@ -32,6 +32,7 @@ request(options, function (error, response, body) {
 
   console.log(body);
 });
+```
 
 
 <h1>Find sequences</h1>
@@ -62,3 +63,4 @@ request(options, function (error, response, body) {
 
   console.log(body);
 });
+```
