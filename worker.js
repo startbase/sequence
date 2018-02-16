@@ -102,22 +102,18 @@ class Worker {
                     if (!!rules[i].date_start && !!rules[i].date_end) {
                         let date_start = new Date(rules[i].date_start).getTime();
                         let date_end = new Date(rules[i].date_end).getTime();
-                        if(action_time >= date_start && action_time <= date_end) {
-                            // negative
-                            if (!any) {
-                                i = rules.length + 1;
-                                break;
-                            }
+                        let proper_date = action_time >= date_start && action_time <= date_end;
+
+                        if(!proper_date) {
+                            i = rules.length + 1;
+                            break;
                         }
                     }
 
                     if (rules[i].previuos_action_time > 0) {
-                        if (action_time - action_last_date < rules[i].previuos_action_time) {
-                            // negative
-                            if (!any) {
-                                i = rules.length + 1;
-                                break;
-                            }
+                        if (action_time - action_last_date > rules[i].previuos_action_time * 1000) {
+                            i = rules.length + 1;
+                            break;
                         }
                     }
 
