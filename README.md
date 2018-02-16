@@ -13,6 +13,7 @@ Pattern matching for event chains.
 </ol>
 
 <h1>Send data</h1>
+
 ```javascript
 var request = require("request");
 
@@ -34,8 +35,8 @@ request(options, function (error, response, body) {
 });
 ```
 
-
 <h1>Find sequences</h1>
+
 ```javascript
 var request = require("request");
 
