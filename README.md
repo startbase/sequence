@@ -1,6 +1,7 @@
 #Sequence
 
 [![Build Status](https://travis-ci.org/startbase/sequence.svg?branch=master)](https://travis-ci.org/startbase/sequence)
+[![Coverage Status](https://coveralls.io/repos/github/startbase/sequence/badge.svg?branch=master)](https://coveralls.io/github/startbase/sequence?branch=master)
 
 Pattern matching for event chains.
 
