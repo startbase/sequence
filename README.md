@@ -4,8 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/startbase/sequence/badge.svg?branch=master)](https://coveralls.io/github/startbase/sequence?branch=master)
 [![License Type](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-Pattern matching for event chains.
+##Pattern matching for event chains
 
+Funnels let you see exactly where users drop off in a multi-step process. How many people hit your home page and end up converting to paid customers? Which step of your registration flow is causing you to lose users?
 
 ## Docker Compose
 * Make sure you have a Docker machine up and running;
