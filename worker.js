@@ -68,7 +68,7 @@ class Worker {
         });
     }
 
-    prepareRules(rules) {
+    prepareRules(rules) { // @todo покрыть тестом
         rules.map(rule => {
             if(rule.date_start) {
                 rule.date_start = new Date(rule.date_start).getTime();
@@ -89,7 +89,6 @@ class Worker {
     }
 
     check_sequence(rules, actions) {
-        rules = this.prepareRules(rules);
 
         Worker.log('rules', rules);
         Worker.log('actions', actions);
@@ -168,6 +167,8 @@ class Worker {
 
         let finded_sequences = 0;
 
+		sequence_ql = this.prepareRules(sequence_ql);
+
         data.forEach((value) => {
 
             let actions = Array.from(value);
@@ -213,6 +214,13 @@ class Worker {
 
         let sequences_data = new Map();
 
+        /** @type {Object} */
+		let prepare_keys = this.prepareKeys(data.keys);
+		/** @type {Map} */
+		let needed_keys = prepare_keys.needed_keys;
+		/** @type {Set} */
+		let delimeters = prepare_keys.delimeters;
+
         rl.on('line', (line) => {
             let e = line.split("\t");
 
@@ -220,7 +228,16 @@ class Worker {
                 sequences_data.set(e[DATASET_KEY], new Set());
             }
 
-            sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
+			/** Если фильтры заданы, проверим наш dataset на соответствие */
+			if (needed_keys.size) {
+				/** @type {Array} */
+				let dataset_keys = this.divideDatasetKey(e[DATASET_KEY], delimeters);
+				if (this.isMatchedDataset(dataset_keys, needed_keys)) {
+					sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
+                }
+            } else {
+				sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
+            }
         });
 
         rl.on('close', () => {
@@ -245,6 +262,114 @@ class Worker {
 
     }
 
+	/**
+	 * Подготовит фильтр из запроса для поиска в Dataset
+	 * @param {Array} keys
+	 * @returns {Object}
+	 */
+	static prepareKeys(keys) {
+        /** @type {Set} */
+        let delimeters = new Set();
+        /** @type {Map} */
+        let needed_keys = new Map();
+
+        if (!keys.length) {
+            return {needed_keys: needed_keys, delimeters: delimeters};
+        }
+
+        for (let i = 0; i < keys.length; i++) {
+            /** Если не заданы value значение и их позиция - дальше не обрабатываем */
+            if (!keys[i].hasOwnProperty('values') || !keys[i].values.length || !keys[i].hasOwnProperty('position')) {
+                continue;
+            }
+
+            if (keys[i].hasOwnProperty('delimiter')) {
+                delimeters.add(keys[i].delimiter);
+            }
+
+            for (let v = 0; v < keys[i].values.length; v++) {
+                /** @type {string} */
+                let value = keys[i].values[v];
+                /** @type {Set} */
+                let positions = new Set();
+
+                /** Если значение было */
+                if (needed_keys.has(value)) {
+                    positions = needed_keys.get(value);
+                    needed_keys.delete(value);
+                }
+
+                positions.add(keys[i].position);
+                needed_keys.set(value, positions);
+            }
+        }
+
+        return {needed_keys: needed_keys, delimeters: delimeters};
+    }
+
+    /**
+	 * Метод разобьёт строку с использованием разделителей и вернёт массивы ключей для каждого разделителя.
+	 * Например, разделители = ['-', '_'], тогда для строки:
+	 * - 1000-2000_12313-21312, результатом будет [ ['1000', '2000_12313', '21312'] , ['1000-2000', '12313-21312'] ]
+	 * - 1000:2000:30000, результатом будет []
+	 *
+	 * @param {string} dataset_key
+	 * @param {Set} delimeters
+	 * @returns {Array}
+	 */
+    static divideDatasetKey(dataset_key, delimeters) {
+        let data = [];
+
+        if (!delimeters.size) {
+            data.push(dataset_key);
+            return data;
+        }
+
+        delimeters.forEach(function (delimeter) {
+            if (dataset_key.indexOf(delimeter) !== -1) {
+                data.push(dataset_key.split(delimeter));
+            }
+        });
+
+        return data;
+    }
+
+	/**
+	 * Метод проверит есть ли ключи (needed_keys) в dataset_keys в нужных позициях.
+	 *
+	 * @param {Array} dataset_keys
+	 * @param {Map} needed_keys
+	 * @returns {boolean}
+	 */
+	static isMatchedDataset(dataset_keys, needed_keys) {
+        /** @type {boolean} */
+        let is_matched = false;
+
+        for (let i = 0; i < dataset_keys.length; i++) {
+            /** @type {Array} */
+            let keys = dataset_keys[i];
+            for (let k = 0; k < keys.length; k++) {
+                /** @type {string} */
+                let key_value = keys[k];
+                if (!needed_keys.has(key_value)) {
+                    continue;
+                }
+
+                /** @type {Set} */
+                let data_position = needed_keys.get(key_value);
+                if (data_position.has(k)) {
+                    is_matched = true;
+                    break;
+                }
+            }
+
+            if (is_matched) {
+                break;
+            }
+        }
+
+        return is_matched;
+    }
 
     static sort_actions_by_date(prev, next) {
         if (prev.datetime > next.datetime) {
