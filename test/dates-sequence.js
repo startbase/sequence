@@ -40,16 +40,6 @@ describe('Dates sequence checks', function () {
         assert.deepEqual(expect, Worker.prepareRules(rules, actions));
     });
 
-    it('Any => Action 1 => Any => Action 2 => Any', function () {
-        let rules = [
-            {rule: "any"},
-            {rule: "equal", action_key: "action_1", date_start:"2017-01-01", date_end:"2018-01-01"},
-            {rule: "any"},
-        ];
-
-        assert.equal(1, Worker.check_sequence(rules, actions));
-    });
-
     it('Zero sequences date borders', function () {
         let rules = [
             {rule: "any"},
