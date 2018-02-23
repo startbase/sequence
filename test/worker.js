@@ -7,11 +7,18 @@ const Worker = require('../worker');
 
 describe('Worker. Test prepare keys function', function () {
 
+	it('Undefined keys', function () {
+		/** @type {{needed_keys: Map, delimeters: Set}} */
+		let expected = { needed_keys: new Map(), delimeters: new Set() };
+
+		assert.deepEqual(expected, Worker.prepareKeys(undefined));
+	});
+
 	it('Normal keys', function () {
 		/** @type {Array} */
 		let keys = [
-			{"values":["100","101","5000"], "delimiter":"_", "position":0},
-			{"values":["101","102","2000","2001"], "delimiter":"_", "position":1},
+			{values:["100","101","5000"], delimiter:"_", position:0},
+			{values:["101","102","2000","2001"], delimiter:"_", position:1},
 		];
 
 		/** @type {Map} */
@@ -32,7 +39,7 @@ describe('Worker. Test prepare keys function', function () {
 	it('Only one key', function () {
 		/** @type {Array} */
 		let keys = [
-			{"values":["100","101","5000"], "delimiter":"_", "position":0},
+			{values:["100","101","5000"], delimiter:"_", position:0},
 		];
 
 		/** @type {Map} */
@@ -59,10 +66,14 @@ describe('Worker. Test prepare keys function', function () {
 	it('Invalid key with many delimiters', function () {
 		/** @type {Array} */
 		let keys = [
-			{"delimiter":"_", "position":0},
-			{"values":["101","102","2000","2001"], "delimiter":"_"},
-			{"values":["302","4000"], "delimiter":"_", "position":1},
-			{"values":["502","4000"], "delimiter":"@", "position":1},
+			{delimiter:"_", position:0},
+			{values:["101","102","2000","2001"], delimiter:"_"},
+			{values:["302","4000"], delimiter:"_", position:1},
+			{values:["502","4000"], delimiter:"@", position:1},
+			{},
+			{undefined},
+			{values:["502","4000"], delimiter:undefined, position:"fff"},
+			{values:["502","4000"], delimiter:"test", position:""},
 		];
 		/** @type {Map} */
 		let needed_keys = new Map([
@@ -98,6 +109,10 @@ describe('Worker. Test divide dataset key function', function () {
 		assert.deepEqual([], Worker.divideDatasetKey('1000-2000_12313-21312', new Set(['@'])));
 	});
 
+	it('Invalid dataset', function () {
+		assert.deepEqual([], Worker.divideDatasetKey(123123, new Set(['@'])));
+	});
+
 });
 
 describe('Worker. Test is matched dataset function', function () {
@@ -131,6 +146,58 @@ describe('Worker. Test is matched dataset function', function () {
 			['104', new Set([1])],
 			['5000', new Set([0])]
 		]);
+
+		assert.equal(true, Worker.isMatchedDataset(dataset_keys, needed_keys));
+	});
+
+	it('Case 3 - Empty dataset', function () {
+		/** @type {Array} */
+		let dataset_keys = [];
+		/** @type {Map} */
+		let needed_keys = new Map([
+			['100', new Set([1])],
+			['101', new Set([0])],
+			['104', new Set([1])],
+			['5000', new Set([0])]
+		]);
+
+		assert.equal(false, Worker.isMatchedDataset(dataset_keys, needed_keys));
+	});
+
+	it('Case 4 - Empty needed_keys', function () {
+		/** @type {Array} */
+		let dataset_keys = [
+			['100', '101', '102'],
+			['103', '104']
+		];
+		/** @type {Map} */
+		let needed_keys = new Map();
+
+		assert.equal(true, Worker.isMatchedDataset(dataset_keys, needed_keys));
+	});
+
+	it('Case 5 - Invalid dataset', function () {
+		/** @type {undefined} */
+		let dataset_keys = undefined;
+		/** @type {Map} */
+		let needed_keys = new Map([
+			['100', new Set([1])],
+			['101', new Set([0])],
+			['104', new Set([1])],
+			['5000', new Set([0])]
+		]);
+
+		assert.equal(false, Worker.isMatchedDataset(dataset_keys, needed_keys));
+	});
+
+	it('Case 5 - Invalid needed_keys', function () {
+		/** @type {undefined} */
+		let dataset_keys = [
+			['100', '101', '102'],
+			['103', '104']
+		];
+		/** @type {String} */
+		let needed_keys = 'dfsdf';
 
 		assert.equal(true, Worker.isMatchedDataset(dataset_keys, needed_keys));
 	});
