@@ -7,6 +7,6 @@ before_script:
  - export TZ=Europe/Moscow
 script:
  - "npm test"
-branches:
-  only:
-    - master
+after_success:
+  - "npm coverage"
+  - "npm report-coverage"
