@@ -7,7 +7,7 @@
     "start": "node app.js",
     "worker": "node worker.js",
     "test": "mocha ./test",
-    "coverage": "./node_modules/istanbul/lib/cli cover ./node_modules/mocha/bin/_mocha ./test",
+    "coverage": "node ./node_modules/istanbul/lib/cli.js cover ./node_modules/mocha/bin/_mocha ./test",
     "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls"
   },
   "repository": {
