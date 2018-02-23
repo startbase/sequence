@@ -7,15 +7,15 @@
     "start": "node app.js",
     "worker": "node worker.js",
     "test": "mocha ./test",
-    "coverage": "node ./node_modules/istanbul/lib/cli cover ./node_modules/mocha/bin/_mocha ./test",
-    "report-coverage": "cat ./coverage/lcov.info | node ./node_modules/coveralls/bin/coveralls.js"
+    "coverage": "./node_modules/istanbul/lib/cli cover ./node_modules/mocha/bin/_mocha ./test",
+    "report-coverage": "cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/startbase/sequence.git"
   },
   "author": "Startbase team",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/startbase/sequence/issues"
   },
