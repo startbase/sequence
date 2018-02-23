@@ -215,7 +215,7 @@ class Worker {
         let sequences_data = new Map();
 
         /** @type {Object} */
-		let prepare_keys = this.prepareKeys(data.keys);
+		let prepare_keys = Worker.prepareKeys(data.keys);
 		/** @type {Map} */
 		let needed_keys = prepare_keys.needed_keys;
 		/** @type {Set} */
@@ -228,11 +228,11 @@ class Worker {
                 sequences_data.set(e[DATASET_KEY], new Set());
             }
 
-			/** Если фильтры заданы, проверим наш dataset на соответствие */
+			/** If the filters are installed, we will check our data set for compliance */
 			if (needed_keys.size) {
 				/** @type {Array} */
-				let dataset_keys = this.divideDatasetKey(e[DATASET_KEY], delimeters);
-				if (this.isMatchedDataset(dataset_keys, needed_keys)) {
+				let dataset_keys = Worker.divideDatasetKey(e[DATASET_KEY], delimeters);
+				if (Worker.isMatchedDataset(dataset_keys, needed_keys)) {
 					sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
                 }
             } else {
@@ -263,8 +263,8 @@ class Worker {
     }
 
 	/**
-	 * Подготовит фильтр из запроса для поиска в Dataset
-	 * @param {Array} keys
+	 * Prepare a filter from the query to search in Dataset
+	 * @param {*|Array} keys
 	 * @returns {Object}
 	 */
 	static prepareKeys(keys) {
@@ -273,13 +273,18 @@ class Worker {
         /** @type {Map} */
         let needed_keys = new Map();
 
-        if (!keys.length) {
+        if (keys === undefined || !keys.length) {
             return {needed_keys: needed_keys, delimeters: delimeters};
         }
 
         for (let i = 0; i < keys.length; i++) {
-            /** Если не заданы value значение и их позиция - дальше не обрабатываем */
-            if (!keys[i].hasOwnProperty('values') || !keys[i].values.length || !keys[i].hasOwnProperty('position')) {
+			/** @type {boolean} */
+			let is_values_correct = keys[i].hasOwnProperty('values') && keys[i].values.length;
+			/** @type {boolean} */
+			let is_position_correct = keys[i].hasOwnProperty('position') && Number.isInteger(keys[i].position);
+
+            /** If no value is specified and their position is no longer processed */
+            if (!is_values_correct || !is_position_correct) {
                 continue;
             }
 
@@ -293,7 +298,7 @@ class Worker {
                 /** @type {Set} */
                 let positions = new Set();
 
-                /** Если значение было */
+                /** If the value exist */
                 if (needed_keys.has(value)) {
                     positions = needed_keys.get(value);
                     needed_keys.delete(value);
@@ -308,10 +313,10 @@ class Worker {
     }
 
     /**
-	 * Метод разобьёт строку с использованием разделителей и вернёт массивы ключей для каждого разделителя.
-	 * Например, разделители = ['-', '_'], тогда для строки:
-	 * - 1000-2000_12313-21312, результатом будет [ ['1000', '2000_12313', '21312'] , ['1000-2000', '12313-21312'] ]
-	 * - 1000:2000:30000, результатом будет []
+	 * The method will break the line using delimiters and return the key arrays for each separator.
+	 * For example, the dividers ['-', '_'], then for the string:
+	 * - 1000-2000_12313-21312, the result will be [ ['1000', '2000_12313', '21312'] , ['1000-2000', '12313-21312'] ]
+	 * - 1000:2000:30000, the result will be []
 	 *
 	 * @param {string} dataset_key
 	 * @param {Set} delimeters
@@ -319,6 +324,9 @@ class Worker {
 	 */
     static divideDatasetKey(dataset_key, delimeters) {
         let data = [];
+        if (typeof dataset_key !== 'string') {
+            return data;
+        }
 
         if (!delimeters.size) {
             data.push(dataset_key);
@@ -335,15 +343,23 @@ class Worker {
     }
 
 	/**
-	 * Метод проверит есть ли ключи (needed_keys) в dataset_keys в нужных позициях.
+	 * The method will check if there are keys (needed_keys) in dataset_keys in the required positions.
 	 *
-	 * @param {Array} dataset_keys
+	 * @param {*|Array} dataset_keys
 	 * @param {Map} needed_keys
 	 * @returns {boolean}
 	 */
 	static isMatchedDataset(dataset_keys, needed_keys) {
-        /** @type {boolean} */
-        let is_matched = false;
+        if (dataset_keys === undefined || !dataset_keys.length) {
+            return false;
+        }
+
+        if (!needed_keys.size) {
+            return true;
+        }
+
+		/** @type {boolean} */
+		let is_matched = false;
 
         for (let i = 0; i < dataset_keys.length; i++) {
             /** @type {Array} */
