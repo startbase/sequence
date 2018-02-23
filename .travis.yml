@@ -8,5 +8,5 @@ before_script:
 script:
  - "npm test"
 after_success:
-  - "npm coverage"
-  - "npm report-coverage"
+  - "npm run coverage"
+  - "npm run report-coverage"
