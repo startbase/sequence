@@ -215,7 +215,7 @@ class Worker {
         let sequences_data = new Map();
 
         /** @type {Object} */
-		let prepare_keys = this.prepareKeys(data.keys);
+		let prepare_keys = Worker.prepareKeys(data.keys);
 		/** @type {Map} */
 		let needed_keys = prepare_keys.needed_keys;
 		/** @type {Set} */
@@ -231,8 +231,8 @@ class Worker {
 			/** If the filters are installed, we will check our data set for compliance */
 			if (needed_keys.size) {
 				/** @type {Array} */
-				let dataset_keys = this.divideDatasetKey(e[DATASET_KEY], delimeters);
-				if (this.isMatchedDataset(dataset_keys, needed_keys)) {
+				let dataset_keys = Worker.divideDatasetKey(e[DATASET_KEY], delimeters);
+				if (Worker.isMatchedDataset(dataset_keys, needed_keys)) {
 					sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
                 }
             } else {
