@@ -224,19 +224,14 @@ class Worker {
         rl.on('line', (line) => {
             let e = line.split("\t");
 
-            if (!sequences_data.has(e[DATASET_KEY])) {
-                sequences_data.set(e[DATASET_KEY], new Set());
-            }
-
-			/** If the filters are installed, we will check our data set for compliance */
-			if (needed_keys.size) {
+            if (needed_keys.size) {
 				/** @type {Array} */
-				let dataset_keys = Worker.divideDatasetKey(e[DATASET_KEY], delimeters);
-				if (Worker.isMatchedDataset(dataset_keys, needed_keys)) {
-					sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
-                }
+				let dataset_key = Worker.divideDatasetKey(e[DATASET_KEY], delimeters);
+				if (Worker.isMatchedDataset(dataset_key, needed_keys)) {
+				    sequences_data = Worker.saveSequencesData(sequences_data, e);
+				}
             } else {
-				sequences_data.get(e[DATASET_KEY]).add({'action': e[DATASET_ACTION], 'datetime': e[DATASET_DATETIME]});
+				sequences_data = Worker.saveSequencesData(sequences_data, e);
             }
         });
 
@@ -263,6 +258,20 @@ class Worker {
     }
 
 	/**
+	 * @param {Map} sequences_data
+	 * @param {Array} data
+	 * @returns {Map}
+	 */
+	static saveSequencesData(sequences_data, data) {
+		if (!sequences_data.has(data[DATASET_KEY])) {
+			sequences_data.set(data[DATASET_KEY], new Set());
+		}
+
+		sequences_data.get(data[DATASET_KEY]).add({'action': data[DATASET_ACTION], 'datetime': data[DATASET_DATETIME]});
+        return sequences_data;
+    }
+
+	/**
 	 * Prepare a filter from the query to search in Dataset
 	 * @param {*|Array} keys
 	 * @returns {Object}
@@ -279,7 +288,7 @@ class Worker {
 
         for (let i = 0; i < keys.length; i++) {
 			/** @type {boolean} */
-			let is_values_correct = keys[i].hasOwnProperty('values') && keys[i].values.length;
+			let is_values_correct = keys[i].hasOwnProperty('value') && keys[i].value.length;
 			/** @type {boolean} */
 			let is_position_correct = keys[i].hasOwnProperty('position') && Number.isInteger(keys[i].position);
 
@@ -292,9 +301,9 @@ class Worker {
                 delimeters.add(keys[i].delimiter);
             }
 
-            for (let v = 0; v < keys[i].values.length; v++) {
+            for (let v = 0; v < keys[i].value.length; v++) {
                 /** @type {string} */
-                let value = keys[i].values[v];
+                let value = keys[i].value[v];
                 /** @type {Set} */
                 let positions = new Set();
 
