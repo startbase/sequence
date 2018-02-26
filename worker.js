@@ -288,7 +288,7 @@ class Worker {
 
         for (let i = 0; i < keys.length; i++) {
 			/** @type {boolean} */
-			let is_values_correct = keys[i].hasOwnProperty('value') && keys[i].value.length;
+			let is_values_correct = keys[i].hasOwnProperty('values') && keys[i].values.length;
 			/** @type {boolean} */
 			let is_position_correct = keys[i].hasOwnProperty('position') && Number.isInteger(keys[i].position);
 
@@ -301,9 +301,9 @@ class Worker {
                 delimeters.add(keys[i].delimiter);
             }
 
-            for (let v = 0; v < keys[i].value.length; v++) {
+            for (let v = 0; v < keys[i].values.length; v++) {
                 /** @type {string} */
-                let value = keys[i].value[v];
+                let value = keys[i].values[v];
                 /** @type {Set} */
                 let positions = new Set();
 

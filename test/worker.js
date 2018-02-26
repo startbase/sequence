@@ -17,8 +17,8 @@ describe('Worker. Test prepare keys function', function () {
 	it('Normal keys', function () {
 		/** @type {Array} */
 		let keys = [
-			{value:["100","101","5000"], delimiter:"_", position:0},
-			{value:["101","102","2000","2001"], delimiter:"_", position:1},
+			{values:["100","101","5000"], delimiter:"_", position:0},
+			{values:["101","102","2000","2001"], delimiter:"_", position:1},
 		];
 
 		/** @type {Map} */
@@ -39,7 +39,7 @@ describe('Worker. Test prepare keys function', function () {
 	it('Only one key', function () {
 		/** @type {Array} */
 		let keys = [
-			{value:["100","101","5000"], delimiter:"_", position:0},
+			{values:["100","101","5000"], delimiter:"_", position:0},
 		];
 
 		/** @type {Map} */
@@ -67,13 +67,13 @@ describe('Worker. Test prepare keys function', function () {
 		/** @type {Array} */
 		let keys = [
 			{delimiter:"_", position:0},
-			{value:["101","102","2000","2001"], delimiter:"_"},
-			{value:["302","4000"], delimiter:"_", position:1},
-			{value:["502","4000"], delimiter:"@", position:1},
+			{values:["101","102","2000","2001"], delimiter:"_"},
+			{values:["302","4000"], delimiter:"_", position:1},
+			{values:["502","4000"], delimiter:"@", position:1},
 			{},
 			{undefined},
-			{value:["502","4000"], delimiter:undefined, position:"fff"},
-			{value:["502","4000"], delimiter:"test", position:""},
+			{values:["502","4000"], delimiter:undefined, position:"fff"},
+			{values:["502","4000"], delimiter:"test", position:""},
 		];
 		/** @type {Map} */
 		let needed_keys = new Map([
