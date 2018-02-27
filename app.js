@@ -56,6 +56,7 @@ class App {
                     try {
                         let query = {
                             file: data.files[this.worker_iterator++],
+                            keys: body.keys,
                             sequence: body.sequence
                         };
                         socket.send(JSON.stringify(query));
