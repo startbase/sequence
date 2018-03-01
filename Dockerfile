@@ -8,4 +8,6 @@ RUN npm install
 
 COPY . .
 
+RUN export TZ=Europe/Moscow && npm test
+
 ENTRYPOINT ["/usr/src/app/docker-entrypoint.sh"]
